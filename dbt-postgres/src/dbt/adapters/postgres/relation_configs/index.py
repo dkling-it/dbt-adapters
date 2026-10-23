@@ -76,6 +76,7 @@ class PostgresIndexConfig(RelationConfigBase, RelationConfigValidationMixin):
     @classmethod
     def parse_model_node(cls, model_node_entry: dict) -> dict:
         config_dict = {
+            "name": model_node_entry.get("name"),
             "column_names": set(model_node_entry.get("columns", set())),
             "unique": model_node_entry.get("unique"),
             "method": model_node_entry.get("type"),
@@ -102,6 +103,8 @@ class PostgresIndexConfig(RelationConfigBase, RelationConfigValidationMixin):
             "unique": self.unique,
             "type": self.method.value,
         }
+        if self.name:
+            node_config["name"] = self.name
         return node_config
 
 

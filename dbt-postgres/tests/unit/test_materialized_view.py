@@ -58,3 +58,37 @@ def test_index_config_changes():
     assert index_changes[1].action == RelationConfigChangeAction.drop
     assert index_changes[2].action == RelationConfigChangeAction.create
     assert index_changes[3].action == RelationConfigChangeAction.create
+
+
+def test_index_name_survives_materialized_view_config_changes():
+    model_index = {"name": "custom_index", "columns": ["column_0"]}
+    index_config = PostgresIndexConfig.from_dict(
+        PostgresIndexConfig.parse_model_node(model_index)
+    )
+
+    assert index_config.as_node_config == {
+        "columns": ["column_0"],
+        "unique": False,
+        "type": "btree",
+        "name": "custom_index",
+    }
+
+    relation = PostgresRelation.create(
+        database="my_database",
+        schema="my_schema",
+        identifier="my_materialized_view",
+        type=RelationType.MaterializedView,
+    )
+    index_changes = relation._get_index_config_changes(frozenset(), frozenset({index_config}))
+
+    assert len(index_changes) == 1
+    assert index_changes[0].action == RelationConfigChangeAction.create
+    assert index_changes[0].context.as_node_config["name"] == "custom_index"
+
+
+def test_unnamed_index_is_not_added_to_materialized_view_node_config():
+    index_config = PostgresIndexConfig.from_dict(
+        PostgresIndexConfig.parse_model_node({"columns": ["column_0"]})
+    )
+
+    assert "name" not in index_config.as_node_config
